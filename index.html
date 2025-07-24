@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Trade-by-Trade Table</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .box { max-width: 600px; margin-bottom: 30px; }
+    label { display: block; margin-top: 10px; }
+    input { width: 100%; padding: 5px; margin-top: 5px; }
+    button { margin-top: 15px; padding: 10px; width: 100%; background-color: teal; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #007777; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 8px; border: 1px solid #ccc; text-align: right; }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h3>Settings</h3>
+  <label>Start balance <input id="startBalance" type="number" value="1000" /></label>
+  <label>Number of trades <input id="trades" type="number" value="100" /></label>
+  <label>Typical risk % <input id="risk" type="number" value="5" /></label>
+  <label>Risk:Reward (1:X) <input id="rr" type="number" value="4" step="0.1" /></label>
+  <label>Win/Loss % <input id="winrate" type="number" value="50" step="1" /></label>
+  <button onclick="simulateTrades()">Calculate</button>
+</div>
+
+<div>
+  <h3>Trade-by-Trade Table</h3>
+  <table id="tradeTable">
+    <thead>
+      <tr>
+        <th>Trade #</th>
+        <th>Gain/Loss ($)</th>
+        <th>Balance After Trade ($)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+function formatNumber(value) {
+  return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function simulateSingleTrade(balance, riskPct, rr, winRate, runs = 100) {
+  const riskAmount = balance * riskPct;
+  let sum = 0;
+
+  for (let i = 0; i < runs; i++) {
+    const win = Math.random() < winRate;
+    sum += win ? riskAmount * rr : -riskAmount;
+  }
+
+  return sum / runs; // average gain/loss for this trade
+}
+
+function simulateTrades() {
+  const startBalance = parseFloat(document.getElementById("startBalance").value);
+  const numTrades = parseInt(document.getElementById("trades").value);
+  const riskPct = parseFloat(document.getElementById("risk").value) / 100;
+  const rr = parseFloat(document.getElementById("rr").value);
+  const winRate = parseFloat(document.getElementById("winrate").value) / 100;
+
+  let balance = startBalance;
+  const tbody = document.querySelector("#tradeTable tbody");
+  tbody.innerHTML = "";
+
+  for (let i = 1; i <= numTrades; i++) {
+    const avgGain = simulateSingleTrade(balance, riskPct, rr, winRate);
+    balance += avgGain;
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${i}</td>
+      <td>${avgGain >= 0 ? "+" : ""}${formatNumber(avgGain)}</td>
+      <td>${formatNumber(balance)}</td>
+    `;
+    tbody.appendChild(row);
+  }
+}
+</script>
+
+</body>
+</html>
