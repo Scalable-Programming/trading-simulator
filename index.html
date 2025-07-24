@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Trade-by-Trade Table</title>
+  <title>Trade Simulator (Single Trade Per Step)</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     .box { max-width: 600px; margin-bottom: 30px; }
@@ -12,6 +12,7 @@
     button:hover { background-color: #007777; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { padding: 8px; border: 1px solid #ccc; text-align: right; }
+    .mode-toggle { margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -23,6 +24,10 @@
   <label>Typical risk % <input id="risk" type="number" value="5" /></label>
   <label>Risk:Reward (1:X) <input id="rr" type="number" value="4" step="0.1" /></label>
   <label>Win/Loss % <input id="winrate" type="number" value="50" step="1" /></label>
+  <label class="mode-toggle" style="display:flex;justify-content:start">
+    <input type="checkbox" id="compoundToggle" checked style="width:20px;margin:0px;"/>
+    Use compounding (risk % on current balance)
+  </label>
   <button onclick="simulateTrades()">Calculate</button>
 </div>
 
@@ -45,16 +50,9 @@ function formatNumber(value) {
   return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
-function simulateSingleTrade(balance, riskPct, rr, winRate, runs = 100) {
-  const riskAmount = balance * riskPct;
-  let sum = 0;
-
-  for (let i = 0; i < runs; i++) {
-    const win = Math.random() < winRate;
-    sum += win ? riskAmount * rr : -riskAmount;
-  }
-
-  return sum / runs; // average gain/loss for this trade
+function simulateOneTrade(riskAmount, rr, winRate) {
+  const win = Math.random() < winRate;
+  return win ? riskAmount * rr : -riskAmount;
 }
 
 function simulateTrades() {
@@ -63,23 +61,26 @@ function simulateTrades() {
   const riskPct = parseFloat(document.getElementById("risk").value) / 100;
   const rr = parseFloat(document.getElementById("rr").value);
   const winRate = parseFloat(document.getElementById("winrate").value) / 100;
+  const compound = document.getElementById("compoundToggle").checked;
 
   let balance = startBalance;
+  const fixedRiskAmount = startBalance * riskPct;
   const tbody = document.querySelector("#tradeTable tbody");
   tbody.innerHTML = "";
 
-  for (let i = 1; i <= numTrades; i++) {
-    const avgGain = simulateSingleTrade(balance, riskPct, rr, winRate);
-    balance += avgGain;
+for (let i = 1; i <= numTrades; i++) {
+  const riskAmount = compound ? balance * riskPct : fixedRiskAmount;
+  const gain = simulateOneTrade(riskAmount, rr, winRate);
+  balance += gain;
 
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${i}</td>
-      <td>${avgGain >= 0 ? "+" : ""}${formatNumber(avgGain)}</td>
-      <td>${formatNumber(balance)}</td>
-    `;
-    tbody.appendChild(row);
-  }
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td>${i}</td>
+    <td>${gain >= 0 ? "+" : ""}${formatNumber(gain)}</td>
+    <td>${formatNumber(balance)}</td>
+  `;
+  tbody.appendChild(row);
+}
 }
 </script>
 
